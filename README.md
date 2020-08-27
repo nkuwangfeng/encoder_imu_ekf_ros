@@ -1,6 +1,8 @@
 # encoder_imu_ekf_ros
 ROS package to fuse together IMU (accelerometer + gyroscope) and wheel encoders in an EKF. Updates position, velocity, orientation, gyroscope bias and accelerometer bias. Implemented in both C++ and Python. C++ version runs in real time. I wrote this package because the standard robot_localization package doesn't work well and in the way standard texts on inertial navigation describe how state estimation with IMUs should operate. Also, no other available software package seemed as flexible in development. 
 
+![GitHub Logo](/results/Motion.png)
+
 Clone into your catkin worskpace.  
 catkin_make  
 roslaunch encoder_imu_ekf_ros cpp_aided_nav.launch  
