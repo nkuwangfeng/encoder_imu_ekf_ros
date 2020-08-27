@@ -4,14 +4,16 @@ Updates position, velocity, orientation, gyroscope bias and accelerometer bias. 
 
 ![GitHub Logo](/results/Motion.png)
 
-Clone into your catkin worskpace.  
-catkin_make  
-roslaunch encoder_imu_ekf_ros cpp_aided_nav.launch  
-subscribes to /imu/data for IMU data  
-subscribes to /wheels for encoder data (int64 array of encoder ticks)  
-open rviz, create an axis with frame IMU to see the rover driving around.  
+Instructions:
+1. clone package into catkin_ws/src  
+2. catkin_make  
+3. roslaunch encoder_imu_ekf_ros cpp_aided_nav.launch  
+4. open rviz, create an axis with frame IMU to see the rover driving around.  
 
 External packages needed: eigen
+
+- subscribes to /imu/data for IMU data  
+- subscribes to /wheels for encoder data (int64 array of encoder ticks)  
 
 Edit noise parameters in code file as necessary. Will move all parameters to launch file soon. Takes 5 seconds to initialize IMU orientation.
 
