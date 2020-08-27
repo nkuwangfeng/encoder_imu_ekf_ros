@@ -11,6 +11,8 @@ subscribes to /imu/data for IMU data
 subscribes to /wheels for encoder data (int64 array of encoder ticks)  
 open rviz, create an axis with frame IMU to see the rover driving around.  
 
+External packages needed: eigen
+
 Edit noise parameters in code file as necessary. Will move all parameters to launch file soon. Takes 5 seconds to initialize IMU orientation.
 
 *********NOTE************
