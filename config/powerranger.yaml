@@ -1,0 +1,6 @@
+imu_hz: 200 # frequency of IMU data
+sigma_xg: 0.00000290 # Gyro (rate) random walk
+sigma_nug: 0.00068585   # rad/s/rt_Hz, Gyro white noise
+sigma_xa: 0.00001483 # Accel (rate) random walk m/s3 1/sqrt(Hz)
+sigma_nua: 0.00220313 # accel white noise
+T: 1000.0/200 # number of measurements over rate of IMU

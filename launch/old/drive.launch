@@ -1,0 +1,9 @@
+<launch>
+<node pkg="imu_ekf_ros" type="ahrs_initialization.py" name="ahrs_initialization_server"  output="screen" />
+<node pkg="tf" type="static_transform_publisher" name="world_to_NED_tf" args="0 0 0 0 0 3.14159265359 /world /NED 100"/>
+<node pkg="encoder_ekf_ros" type="aided_nav.py" name="aided_nav"  output="screen" />
+<node pkg="hercules_comm" type="PowerRangerComm.py" name="power_ranger_node"/>
+<node pkg="joy" type="joy_node" name="joy_node">
+  <param name="autorepeat_rate" value="0.5"/>
+</node>
+</launch>

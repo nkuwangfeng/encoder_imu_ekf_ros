@@ -1,0 +1,3 @@
+---
+geometry_msgs/Quaternion init_orientation
+std_msgs/Float64[3] gyro_bias

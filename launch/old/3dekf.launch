@@ -1,0 +1,6 @@
+<launch>
+<node pkg="imu_ekf_ros" type="ahrs_initialization.py" name="ahrs_initialization_server"  output="screen" />
+<node pkg="imu_ekf_ros" type="ahrs_ekf.py" name="ahrs_ekf"  output="screen" />
+<node pkg="tf" type="static_transform_publisher" name="world_to_NED_tf" args="0 0 0 0 0 3.14159265359 /world /NED 100"/>
+<node pkg="encoder_ekf_ros" type="encoder_imu_3D_ekf.py" name="ekf_3D"  output="screen" />
+</launch>
