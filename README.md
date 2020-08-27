@@ -1,5 +1,6 @@
 # encoder_imu_ekf_ros
-ROS package to fuse together IMU (accelerometer + gyroscope) and wheel encoders in an EKF. Updates position, velocity, orientation, gyroscope bias and accelerometer bias. Implemented in both C++ and Python. C++ version runs in real time. I wrote this package because the standard robot_localization package doesn't work well and in the way standard texts on inertial navigation describe how state estimation with IMUs should operate. Also, no other available software package seemed as flexible in development. 
+ROS package to fuse together IMU (accelerometer + gyroscope) and wheel encoders in an EKF.   
+Updates position, velocity, orientation, gyroscope bias and accelerometer bias. Implemented in both C++ and Python. C++ version runs in real time. I wrote this package following standard texts on inertial navigation, taking the data directly from gyroscopes and accelerometers in the EKF state update step. Surprisingly, there aren't many such implementations (including robot_localization). This is probably because the proprietary algorithms onboard IMU's are made by PROs and the attitude from there can be used directly. Also, most people use low grade IMUs that are not capable of integrating the accelerometer in a useful way (high gyro drift). So if your IMU isn't as good as an XSens grade IMU, I don't think this package will work for you.
 
 ![GitHub Logo](/results/Motion.png)
 
@@ -10,9 +11,9 @@ subscribes to /imu/data for IMU data
 subscribes to /wheels for encoder data (int64 array of encoder ticks)  
 open rviz, create an axis with frame IMU to see the rover driving around.  
 
-Edit parameters in code file as necessary. Will move all parameters to launch file soon. Takes 5 seconds to initialize IMU orientation.
+Edit noise parameters in code file as necessary. Will move all parameters to launch file soon. Takes 5 seconds to initialize IMU orientation.
 
 *********NOTE************
-More sensors can be added given you can add a subscriber, derive the necessary measurement and noise matrices, and finally call the general 'ekf' function. We will be adding a sun-sensor onto our rover shortly.  
+More sensors can be added given you can add a subscriber, derive the necessary measurement and noise matrices, and finally call the general 'ekf' function. We will be adding a sun-sensor onto our rover shortly. Will add a writeup of theoretical derivation later.
 
 Derivation was done following: Aided Navigation: GPS with High Rate Sensors' by Jay A. Farrell, chapter 10.
