@@ -18,6 +18,6 @@ External packages needed: eigen
 Edit noise parameters in code file as necessary. Will move all parameters to launch file soon. Takes 5 seconds to initialize IMU orientation.
 
 *********NOTE************
-More sensors can be added given you can add a subscriber, derive the necessary measurement and noise matrices, and finally call the general 'ekf' function. We will be adding a sun-sensor onto our rover shortly. Will add a writeup of theoretical derivation later.
+More sensors can be added given you can add a subscriber, derive the necessary measurement and noise matrices, and finally call the general 'ekf' function. We will be adding a sun-sensor onto our rover shortly. Theoretical derivation is in Derivation.pdf.
 
 Derivation was done following: Aided Navigation: GPS with High Rate Sensors' by Jay A. Farrell, chapter 10.
