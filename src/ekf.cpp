@@ -335,7 +335,7 @@ void imu_callback(const sensor_msgs::Imu::ConstPtr& msg)
 	// Critical Point of algo. Will be very bad if your orientation is wrong
 	Eigen::Matrix<float,3,1> a_i = f_i - g_vec;
 
-	// The next two lines of codeSICS EQUATIONS
+	// The next two lines of code are PHYSICS EQUATIONS
 	
 	// update position (5.16 Principles of GNSS book)
 	p = p + v*filter.dt + 0.5*a_i*filter.dt*filter.dt;
