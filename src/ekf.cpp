@@ -189,7 +189,7 @@ void EKF(const Eigen::MatrixXf & H, const Eigen::MatrixXf & R, const Eigen::Matr
 	// symmetrify again
 	cov = (cov + cov.transpose())/2.0;
 
-	//  update encoder start state: position and orientation
+	//  update encoder start state: position and orientation TODO atomicity? from @V
 	enc_meas << state[0],state[1],state[2], 0, b_next.w(), b_next.x(), b_next.y(), b_next.z();
 
 	if (true)
@@ -272,6 +272,8 @@ void encoders_callback(const std_msgs::Int32MultiArray::ConstPtr& msg)
 }
 
 // imu callback
+// updates orientation and position using quaternion math and physics kinematic equations
+// Prediction Step/Time Propogation/State Update/Vehicle Kinematics step
 void imu_callback(const sensor_msgs::Imu::ConstPtr& msg)
 {
 	// Uncomment to time things
@@ -294,7 +296,7 @@ void imu_callback(const sensor_msgs::Imu::ConstPtr& msg)
 
 	// current orientation
 	Eigen::Matrix<float,4,1> b = state(Eigen::seq(6,9));
-	Eigen::Quaternion<float> b_prev = Eigen::Quaternion<float>(b(0),b(1),b(2),b(3)); // w, x, y, z
+	Eigen::Quaternion<float> b_prev = Eigen::Quaternion<float>(b(0),b(1),b(2),b(3)); // w, x, y, z //could also be called b_current
 
 	// current accel bias
 	Eigen::Matrix<float,3,1> x_a = state(Eigen::seq(10,12));
@@ -306,7 +308,7 @@ void imu_callback(const sensor_msgs::Imu::ConstPtr& msg)
 	Eigen::Matrix<float,3,1> w_bn = -1*(w_nb-x_g);
 	float w_norm = w_bn.norm();
 
-	// subtract out accelerometer bias
+	// subtract out accelerometer bias //TODO can be more complicated if needed
 	f_b = f_b - x_a;
 
 	// differential rotation: [w, x, y, z]
@@ -316,7 +318,7 @@ void imu_callback(const sensor_msgs::Imu::ConstPtr& msg)
 	// update orientation
 	Eigen::Quaternion<float> b_next = db*b_prev;
 
-	// get average quaternion by interpolation
+	// get average quaternion by interpolation //want measurement btw. now and next timestep
 	Eigen::Quaternion<float> b_avg = b_prev.slerp(0.5,b_next);
 
 	// b is the nav to body transformation. we need body to nav transformation -> invert 
@@ -325,17 +327,22 @@ void imu_callback(const sensor_msgs::Imu::ConstPtr& msg)
 	// rotate specific force into inertial frame
 	Eigen::Matrix<float,3,1> f_i = b_body_to_nav_avg._transformVector(f_b);
 
-	// gravity vector
+	// gravity vector //TODO make static to be constant
 	Eigen::Matrix<float,3,1> g_vec(0,0,filter.g);
 
 	// get acceleration in inertial frame. (acceleration of body wrt inertial frame in inertial frame)
+	// inertial frame is already affected by gravity. 
+	// Critical Point of algo. Will be very bad if your orientation is wrong
 	Eigen::Matrix<float,3,1> a_i = f_i - g_vec;
 
+	// The next two lines of codeSICS EQUATIONS
+	
 	// update position (5.16 Principles of GNSS book)
 	p = p + v*filter.dt + 0.5*a_i*filter.dt*filter.dt;
 
 	// update velocity
 	v = v + a_i*filter.dt;
+
 
 	// store in state -> this is time propagation step. 
 	state << p(0),p(1),p(2), v(0),v(1),v(2), b_next.w(),b_next.x(),b_next.y(),b_next.z(), x_a(0),x_a(1),x_a(2), x_g(0),x_g(1),x_g(2);
@@ -345,11 +352,12 @@ void imu_callback(const sensor_msgs::Imu::ConstPtr& msg)
 
 	// compute state transition matrix Phi
 	Eigen::Matrix<float,15,15> Phi(15,15);
-	computePhi(f_i, R_body_to_nav_next, Phi);
+	computePhi(f_i, R_body_to_nav_next, Phi); // TODO Review
+	//TODO do the Van Load computePhi (@A)
 
 	// compute Qdk (discrete noise). Qdk is 15 x 15
 	Eigen::Matrix<float,15,15> Qdk(15,15);
-	computeQdk(R_body_to_nav_next, Qdk);
+	computeQdk(R_body_to_nav_next, Qdk); // TODO Review
 
 	// update covariance (15x15)
 	cov = Phi*cov*Phi.transpose()+Qdk;
@@ -357,7 +365,7 @@ void imu_callback(const sensor_msgs::Imu::ConstPtr& msg)
 	/* Measurement update using accelerometer to correct roll and pitch */
 	// if 50 accelerometer readings were close enough to the gravity vector, robot is stationary
 	//  check if current measurement is stationary
-	if (abs(f_b.norm() - filter.g) < 0.03) // tuned. test: you should never be able to hold the imu in your hand and have an update.
+	if (abs(f_b.norm() - filter.g) < 0.03) // tuned. test: you should never be able to hold the imu in your hand and have an update. //TODO tune 0.03 @V
 	{
 		accel_counter++;
 		g_pred_sum += R_body_to_nav_next*(f_b); // R*(x_a-y_a) TODO: CHECK THIS
@@ -367,7 +375,7 @@ void imu_callback(const sensor_msgs::Imu::ConstPtr& msg)
 		g_pred_sum = Eigen::Matrix<float,3,1>::Zero();
 		rover_stationary = false;
 	}
-	// if 50 consecutive stationary, use accel_data
+	// if 50 consecutive stationary, use accel_data //TODO tune @V. It currently is at about 0.25 seconds
 	if (accel_counter == 50)
 	{
 		// predict gravity in navigation frame and store prediction in global variable.
@@ -390,6 +398,7 @@ void imu_callback(const sensor_msgs::Imu::ConstPtr& msg)
 	}
 
 }
+//TODO include IMU's orientation into this EKF (as if it was a sun sensor. @V
 
 void initialize_ekf(ros::NodeHandle &n)
 {
@@ -399,36 +408,37 @@ void initialize_ekf(ros::NodeHandle &n)
 	ros::ServiceClient client = n.serviceClient<encoder_imu_ekf_ros::initRequest>("initialize_ekf");
 
 	// instantiate service class
-	encoder_imu_ekf_ros::initRequest srv;
+	encoder_imu_ekf_ros::initRequest srv; //gives initial orientation (when robot stationary) 
 
 	// call the service
 	if (!client.waitForExistence(ros::Duration(-1)))
 	{
 		ROS_ERROR("initialize_ekf didn't send data");
 	}
-	if (client.call(srv))
+	if (client.call(srv)) //see handle_init_ekf
 	{
-		ROS_INFO("initialize_ekf responded with data.");
+		ROS_INFO("initialize_ekf responded with data."); 
 		// store received data
 		geometry_msgs::Quaternion b = srv.response.init_orientation;
-		Eigen::Vector3d x_g = {srv.response.gyro_bias[0].data, srv.response.gyro_bias[1].data, srv.response.gyro_bias[2].data};
+		Eigen::Vector3d x_g = {srv.response.gyro_bias[0].data, srv.response.gyro_bias[1].data, srv.response.gyro_bias[2].data}; //biases
+		//TODO accelearation biases
 
 		// filter rate parameters
 		int num_data, hz; // number of data points used to initialize, imu hz
-		n.param("num_data",num_data,1000);
+		n.param("num_data",num_data,1000); //num init pts
 		n.param("imu_hz",hz,200);
 		filter.dt = 1.0/hz;
 		filter.num_data = num_data;
 		int T = num_data/hz;  //number of measurements over rate of IMU
 
-		// initialize noise terms
+		// initialize noise terms //can put in launch file
 		float sigma_xg, sigma_nug, sigma_xa, sigma_nua;
 		n.param<float>("sigma_xg",sigma_xg,0.00000290); // Gyro (rate) random walk
 		n.param<float>("sigma_nug",sigma_nug,0.00068585); // rad/s/rt_Hz, Gyro white noise
 		n.param<float>("sigma_xa",sigma_xa,0.00001483);  // Accel (rate) random walk m/s3 1/sqrt(Hz)
 		n.param<float>("sigma_nua",sigma_nua,0.00220313); // accel white noise
 
-		// noise matrix for IMU (Q)
+		// noise matrix for IMU (Q) //TODO can optimize
 		for (int i = 0; i < 3; i++)
 		{
 			filter.Q(i,i) = sigma_nua*sigma_nua;
@@ -444,7 +454,8 @@ void initialize_ekf(ros::NodeHandle &n)
 		n.param<float>("g",filter.g,9.8021);
 
 		// encoder slip model, % slip
-		n.param<float>("k",filter.k,0.05);
+		n.param<float>("k",filter.k,0.05); //TODO  keep editing and discover better definition of this 
+					//note that the slip can only cause you to overshoot your estimate
 
 		// robot dimensional parameters
 		n.param<float>("L",filter.L, 0.6096); // base width (m)
@@ -461,11 +472,14 @@ void initialize_ekf(ros::NodeHandle &n)
 		state << 0,0,0,0,0,0,b.w,b.x,b.y,b.z,0,0,0,x_g[0],x_g[1],x_g[2];
 
 		// initialize covariance
-		cov.block<2,2>(6,6) = (sigma_nua/filter.g)*(sigma_nua/filter.g)/T*Eigen::Matrix<float,2,2>::Identity();
-		cov.block<3,3>(12,12) = (sigma_nug)*(sigma_nug)/T*Eigen::Matrix<float,3,3>::Identity();
+		cov.block<2,2>(6,6) = (sigma_nua/filter.g)*(sigma_nua/filter.g)/T*Eigen::Matrix<float,2,2>::Identity(); //orientation uncertainty
+		cov.block<3,3>(12,12) = (sigma_nug)*(sigma_nug)/T*Eigen::Matrix<float,3,3>::Identity(); //gyro bias uncertainty
+		//TODO accelerometer initial uncertainty (after initializing accelerometer bias)
 
-		// initialize encoder model state [p,0,b] = [position, 0, orientation]
-		// encoder acts like a sensor initialized at end of every measurement update
+		// initialize encoder model state [p,0,b] = [position, 0, orientation] 
+		 		//0 was the predicted yaw from diff_drive model
+		// encoder acts like a sensor initialized at end of every measurement update 
+				//orientation is an add-on (TODO Check: not nesec from the encoders)
 		enc_meas << 0,0,0,0,b.w,b.x,b.y,b.z;
 
 	}

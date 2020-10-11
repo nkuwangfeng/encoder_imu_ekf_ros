@@ -57,10 +57,10 @@ Eigen::Matrix<float, 8, 1> enc_meas(8,1); // encoder "measurement"
 EKF_struct filter; // filter object
 
 // variables used for measurement update if rover stationary
-bool rover_stationary = false; // affects the measurement update
-int accel_counter = 0;
-Eigen::Matrix<float,3,1> g_pred(3,1);
-Eigen::Matrix<float,3,1> g_pred_sum(3,1);
+bool rover_stationary = false; // affects the measurement update; is rover stationary
+int accel_counter = 0; //num acc meas when stat
+Eigen::Matrix<float,3,1> g_pred(3,1); //predicted g
+Eigen::Matrix<float,3,1> g_pred_sum(3,1); //predicted g over time
 
 // variables used for measurement update for encoders
 bool first_time_enc = true;
